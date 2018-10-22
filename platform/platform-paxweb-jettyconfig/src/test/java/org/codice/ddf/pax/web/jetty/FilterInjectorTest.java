@@ -22,12 +22,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Dictionary;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import javax.servlet.Filter;
 import javax.servlet.FilterRegistration;
 import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
 import javax.servlet.SessionCookieConfig;
+import org.codice.ddf.platform.filter.InjectFilter;
 import org.junit.Test;
 import org.mockito.Matchers;
 import org.mockito.Mockito;
@@ -54,20 +57,21 @@ public class FilterInjectorTest {
   /** Tests that the filter is registered when the injectFilter method is called. */
   @Test
   public void testInjectFilter() {
-    SecurityJavaSubjectFilter filter = mock(SecurityJavaSubjectFilter.class);
     executorService = mock(ScheduledExecutorService.class);
-    FilterInjector injector = new FilterInjector(filter, executorService);
+    InjectorFilter injectorFilter = createFilters();
+    FilterInjector injector = new FilterInjector(injectorFilter, executorService);
     updateMockReference();
 
     injector.event(curEvent, null);
 
-    verify(curContext).addFilter("security-java-subject-filter", filter);
+    verify(curContext).addFilter(anyString(), eq(injectorFilter));
   }
 
   @Test
   public void testInjectFilterHandlesOnlyServletContext() {
-    SecurityJavaSubjectFilter filter = mock(SecurityJavaSubjectFilter.class);
-    FilterInjector injector = new FilterInjector(filter, executorService);
+    executorService = mock(ScheduledExecutorService.class);
+    InjectorFilter injectorFilter = createFilters();
+    FilterInjector injector = new FilterInjector(injectorFilter, executorService);
     curEvent = mock(ServiceEvent.class);
     curReference = mock(ServiceReference.class);
     curContext = mock(ServletContext.class);
@@ -80,16 +84,16 @@ public class FilterInjectorTest {
     when(curReference.getBundle()).thenReturn(bundle);
     when(bundle.getBundleContext()).thenReturn(context);
     when(context.getService(curReference)).thenReturn(service);
-
     injector.event(curEvent, null);
 
-    verify(curContext, never()).addFilter("delegating-filter", filter);
+    verify(curContext, never()).addFilter(anyString(), eq(injectorFilter));
   }
 
   @Test
   public void testInjectFilterIgnoresUnregisteringEvents() {
-    SecurityJavaSubjectFilter filter = mock(SecurityJavaSubjectFilter.class);
-    FilterInjector injector = new FilterInjector(filter, executorService);
+    executorService = mock(ScheduledExecutorService.class);
+    InjectorFilter injectorFilter = createFilters();
+    FilterInjector injector = new FilterInjector(injectorFilter, executorService);
     curEvent = mock(ServiceEvent.class);
     when(curEvent.getType()).thenReturn(ServiceEvent.UNREGISTERING);
 
@@ -100,8 +104,9 @@ public class FilterInjectorTest {
 
   @Test
   public void testInjectFilterIgnoresModifiedEvents() {
-    SecurityJavaSubjectFilter filter = mock(SecurityJavaSubjectFilter.class);
-    FilterInjector injector = new FilterInjector(filter, executorService);
+    executorService = mock(ScheduledExecutorService.class);
+    InjectorFilter injectorFilter = createFilters();
+    FilterInjector injector = new FilterInjector(injectorFilter, executorService);
     curEvent = mock(ServiceEvent.class);
     when(curEvent.getType()).thenReturn(ServiceEvent.MODIFIED);
 
@@ -112,14 +117,25 @@ public class FilterInjectorTest {
 
   @Test
   public void testInjectFilterIgnoresModifiedEndMatchEvents() {
-    SecurityJavaSubjectFilter filter = mock(SecurityJavaSubjectFilter.class);
-    FilterInjector injector = new FilterInjector(filter, executorService);
+    executorService = mock(ScheduledExecutorService.class);
+    InjectorFilter injectorFilter = createFilters();
+    FilterInjector injector = new FilterInjector(injectorFilter, executorService);
     curEvent = mock(ServiceEvent.class);
     when(curEvent.getType()).thenReturn(ServiceEvent.MODIFIED_ENDMATCH);
 
     injector.event(curEvent, null);
 
     verify(curEvent, never()).getServiceReference();
+  }
+
+  @SuppressWarnings("unchecked")
+  private InjectorFilter createFilters() {
+    List<InjectFilter> filters = new LinkedList<>();
+    SecurityJavaSubjectFilter filter1 = mock(SecurityJavaSubjectFilter.class);
+    SecurityJavaSubjectFilter filter2 = mock(SecurityJavaSubjectFilter.class);
+    filters.add(filter1);
+    filters.add(filter2);
+    return new InjectorFilter(filters);
   }
 
   @SuppressWarnings("unchecked")

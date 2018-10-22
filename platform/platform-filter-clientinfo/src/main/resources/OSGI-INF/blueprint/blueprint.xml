@@ -17,7 +17,7 @@
 
     <bean id="clientInfoFilter" class="org.codice.ddf.platform.filter.clientinfo.ClientInfoFilter"/>
 
-    <service ref="clientInfoFilter" interface="org.codice.ddf.platform.filter.SecurityFilter">
+    <service ref="clientInfoFilter" interface="org.codice.ddf.platform.filter.InjectFilter">
         <service-properties>
             <entry key="osgi.http.whiteboard.filter.name" value="clientinfo-filter"/>
         </service-properties>

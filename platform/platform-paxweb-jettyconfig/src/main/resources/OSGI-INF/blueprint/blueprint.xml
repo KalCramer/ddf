@@ -12,17 +12,25 @@
  **/ -->
 <blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0">
 
-
-    <bean id="securityJavaSubjectFilter"
-          class="org.codice.ddf.pax.web.jetty.SecurityJavaSubjectFilter"/>
-
     <bean id="executor" class="java.util.concurrent.Executors" factory-method="newSingleThreadScheduledExecutor">
         <argument ref="securityJavaSubjectThreadFactory"/>
+    </bean>
+    <bean id="securityJavaSubjectFilter" class="org.codice.ddf.pax.web.jetty.SecurityJavaSubjectFilter"/>
+
+
+    <bean id="injectFiltersList" class="org.codice.ddf.platform.util.SortedServiceList"/>
+    <reference-list interface="org.codice.ddf.platform.filter.InjectFilter"
+                    availability="optional">
+        <reference-listener ref="injectFiltersList" bind-method="bindPlugin" unbind-method="unbindPlugin"/>
+    </reference-list>
+
+    <bean id="injectorFilter" class="org.codice.ddf.pax.web.jetty.InjectorFilter">
+        <argument ref="injectFiltersList"/>
     </bean>
 
     <bean id="filterInjector" class="org.codice.ddf.pax.web.jetty.FilterInjector" init-method="init"
           destroy-method="destroy">
-        <argument ref="securityJavaSubjectFilter"/>
+        <argument ref="injectorFilter"/>
         <argument ref="executor"/>
     </bean>
 
@@ -33,5 +41,6 @@
     </bean>
 
     <service interface="org.osgi.framework.hooks.service.EventListenerHook" ref="filterInjector"/>
+    <service interface="org.codice.ddf.platform.filter.InjectFilter" ref="securityJavaSubjectFilter"/>
 
 </blueprint>

@@ -47,22 +47,18 @@ public class FilterInjector implements EventListenerHook {
 
   private static final String ALL_URLS = "/*";
 
-  private static final String SECURITY_JAVA_SUBJECT_FILTER = "security-java-subject-filter";
-
-  private final SecurityJavaSubjectFilter securityJavaSubjectFilter;
-
   private final ScheduledExecutorService executorService;
+
+  private final InjectorFilter filter;
 
   /**
    * Creates a new filter injector with the specified {@link SecurityJavaSubjectFilter}.
    *
-   * @param securityJavaSubjectFilter filter that should be injected.
+   * @param filter filter that should be injected.
    * @param executorService used to check for missed servlet contexts
    */
-  public FilterInjector(
-      SecurityJavaSubjectFilter securityJavaSubjectFilter,
-      ScheduledExecutorService executorService) {
-    this.securityJavaSubjectFilter = securityJavaSubjectFilter;
+  public FilterInjector(InjectorFilter filter, ScheduledExecutorService executorService) {
+    this.filter = filter;
     this.executorService = executorService;
   }
 
@@ -108,9 +104,10 @@ public class FilterInjector implements EventListenerHook {
         BundleContext bundlectx = refBundle.getBundleContext();
         ServletContext service = bundlectx.getService(reference);
 
-        if (service.getFilterRegistration(SECURITY_JAVA_SUBJECT_FILTER) == null) {
+        String name = filter.getClass().getName();
+        if (service.getFilterRegistration(name) == null) {
           LOGGER.error(
-              "Security java subject filter failed to start in time to inject itself into {} {}. This means the {} servlet will not properly attach the user subject to requests. A system restart is recommended.",
+              "Filter Injector failed to start in time to inject itself into {} {}. This means the {} servlet will not properly attach the user subject to requests. A system restart is recommended.",
               refBundle.getSymbolicName(),
               refBundle.getBundleId(),
               refBundle.getSymbolicName());
@@ -119,7 +116,7 @@ public class FilterInjector implements EventListenerHook {
 
     } catch (InvalidSyntaxException e) {
       LOGGER.error(
-          "Problem checking ServletContexts for SecurityJavaSubjectFilter injections. One of the servlets running might not have all of the needed filters injected. A system restart is recommended. See debug logs for additional details.");
+          "Problem checking ServletContexts for filter injections. One of the servlets running might not have all of the needed filters injected. A system restart is recommended. See debug logs for additional details.");
       LOGGER.debug("Additional Details:", e);
     }
   }
@@ -146,13 +143,12 @@ public class FilterInjector implements EventListenerHook {
           "Failed trying to set the cookie config path to /. This can usually be ignored", e);
     }
 
+    String name = filter.getClass().getName();
     try {
-
-      FilterRegistration filterReg =
-          context.addFilter(SECURITY_JAVA_SUBJECT_FILTER, securityJavaSubjectFilter);
+      FilterRegistration filterReg = context.addFilter(name, filter);
 
       if (filterReg == null) {
-        filterReg = context.getFilterRegistration(SECURITY_JAVA_SUBJECT_FILTER);
+        filterReg = context.getFilterRegistration(name);
       } else {
         ((FilterRegistration.Dynamic) filterReg).setAsyncSupported(true);
       }
@@ -160,7 +156,8 @@ public class FilterInjector implements EventListenerHook {
       filterReg.addMappingForUrlPatterns(EnumSet.of(DispatcherType.REQUEST), true, ALL_URLS);
     } catch (IllegalStateException ise) {
       LOGGER.error(
-          "Could not inject SecurityJavaSubjectFilter into {} because the servlet was already initialized. This means that SecurityJavaSubjectFilter will not be included in {}.",
+          "Could not inject {} into {} because the servlet was already initialized. This means that the filter will not be included in {}.",
+          name,
           refBundle.getSymbolicName(),
           refBundle.getSymbolicName(),
           ise);

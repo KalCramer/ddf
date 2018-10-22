@@ -13,23 +13,13 @@
  */
 package org.codice.ddf.platform.filter;
 
-import java.io.IOException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
+import javax.servlet.Filter;
 
 /**
- * {@link SecurityFilter} is a marker interface that indicates that the filters will be handled by
- * the {@link org.codice.ddf.pax.web.jetty.JettyAuthenticator} instead of injected in servlets
- * directly.
+ * {@link InjectFilter} is a marker interface that indicates that the filters will be handled by the
+ * {@link org.codice.ddf.pax.web.jetty.FilterInjector} instead of injected in servlets directly.
  *
  * <p><b> This code is experimental. While this interface is functional and tested, it may change or
  * be removed in a future version of the library. </b>
  */
-public interface SecurityFilter {
-  void init();
-
-  void doFilter(ServletRequest var1, ServletResponse var2, FilterChain var3)
-      throws IOException, AuthenticationException;
-
-  void destroy();
-}
+public interface InjectFilter extends Filter {}

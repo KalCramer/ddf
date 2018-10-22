@@ -17,26 +17,32 @@ import ddf.security.SecurityConstants;
 import java.io.IOException;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+import org.codice.ddf.platform.filter.InjectFilter;
 import org.slf4j.LoggerFactory;
 
-public class SecurityJavaSubjectFilter implements Filter {
+public class SecurityJavaSubjectFilter implements InjectFilter {
   private static final org.slf4j.Logger LOGGER =
       LoggerFactory.getLogger(SecurityJavaSubjectFilter.class);
 
   @Override
-  public void init(FilterConfig filterConfig) throws ServletException {
+  public void init(FilterConfig filterConfig) {
     LOGGER.debug("Starting SecurityJavaSubjectFilter...");
   }
 
   @Override
+  public void destroy() {
+    // not needed
+  }
+
+  @Override
   public void doFilter(
-      ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain)
+      ServletRequest servletRequest,
+      ServletResponse servletResponse,
+      javax.servlet.FilterChain filterChain)
       throws IOException, ServletException {
 
     javax.security.auth.Subject subject =
@@ -60,10 +66,5 @@ public class SecurityJavaSubjectFilter implements Filter {
       filterChain.doFilter(servletRequest, servletResponse);
       LOGGER.debug("No java subject found to attach to thread.");
     }
-  }
-
-  @Override
-  public void destroy() {
-    // not needed
   }
 }
